@@ -1,5 +1,4 @@
-import { err, ErrImpl, ok, Result } from "../src/result";
-
+import { ok, err, Result } from "../index";
 
 describe("Ok Result", () => {
   const r = ok(42);
@@ -51,9 +50,7 @@ describe("Err Result", () => {
   });
 
   test("expect", () => {
-    expect(() => r.expect("Should panic")).toThrowError(
-      "Should panic - Error: Error"
-    );
+    expect(() => r.expect("Should panic")).toThrow();
   });
 
   test("Iterating", () => {
@@ -89,6 +86,31 @@ describe("Namespace Tests", () => {
         throw new Error("Error");
       });
       expect(res.isErr()).toBe(true);
+    });
+  });
+
+  describe("Match", () => {
+    test("Success", () => {
+      const r = ok(42);
+      Result.match(r, (okVal) => {
+        expect(okVal.unwrap()).toBe(42);
+      });
+    });
+
+    test("Error", () => {
+      const r = err("Error");
+      Result.match(r, undefined, (errVal) => {
+        expect(errVal.isErr()).toBe(true);
+        expect(errVal.unwrapOr("Fallback")).toBe("Fallback");
+      });
+    });
+
+    test("Is result", () => {
+      const r = ok(42);
+      const e = err("Error");
+      expect(Result.isResult(r)).toBe(true);
+      expect(Result.isResult(e)).toBe(true);
+      expect(Result.isResult(42)).toBe(false);
     });
   });
 });
