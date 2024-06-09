@@ -39,7 +39,7 @@ interface BaseResult<T, E>
   expect(msg: string): T;
 }
 
-class OkImpl<T> implements BaseResult<T, never> {
+export class OkImpl<T> implements BaseResult<T, never> {
   private readonly ok!: true;
   private readonly err!: false;
   private readonly value!: T;
@@ -86,14 +86,14 @@ class OkImpl<T> implements BaseResult<T, never> {
   }
 }
 
-class ErrImpl<E> implements BaseResult<never, E> {
+export class ErrImpl<E> implements BaseResult<never, E> {
   static readonly EMPTY = new ErrImpl<void>(undefined);
 
   private readonly ok!: false;
   private readonly err!: true;
   private readonly value!: E;
 
-  private readonly _stack!: string;
+  readonly _stack!: string;
 
   constructor(value: E) {
     if (!(this instanceof ErrImpl)) {
@@ -159,9 +159,8 @@ export namespace Result {
     op: () => Promise<T>
   ): Promise<Result<T, E>> {
     try {
-      return op()
-        .then((val) => ok(val))
-        .catch((e) => err(e));
+      const val = await op();
+      return ok(val);
     } catch (e) {
       return err(e as E);
     }
