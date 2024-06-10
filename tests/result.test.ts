@@ -21,12 +21,31 @@ describe("Ok Result", () => {
 
   test("expect", () => {
     expect(r.expect("Should not panic")).toBe(42);
+    expect(r.expectErr).toThrow();
   });
 
   test("Iterating", () => {
     const iter = ok([1, 2, 3]);
     expect(iter[Symbol.iterator]().next()).not.toBeUndefined();
     expect(iter[Symbol.iterator]().next().value).toBe(1);
+  });
+
+  test("Mapping Value", () => {
+    const newR = r.map((val) => val * 2);
+    expect(newR.isOk()).toBe(true);
+    expect(newR.unwrap()).toBe(84);
+  });
+
+  test("Mapping Error", () => {
+    const newR = r.mapErr((val) => val + "!");
+    expect(newR.isOk()).toBe(true);
+    expect(newR.unwrap()).toBe(42);
+  });
+
+  test("Chaining", () => {
+    const newR = r.andThen((val) => ok(val * 2));
+    expect(newR.isOk()).toBe(true);
+    expect(newR.unwrap()).toBe(84);
   });
 });
 
@@ -39,6 +58,7 @@ describe("Err Result", () => {
 
   test("isErr", () => {
     expect(r.isErr()).toBe(true);
+    expect(r.expectErr("No Error!")).toBe("Error");
   });
 
   test("unwrap", () => {
@@ -57,6 +77,24 @@ describe("Err Result", () => {
     const iter = err("Error");
     expect(iter[Symbol.iterator]().next()).not.toBeUndefined();
     expect(iter[Symbol.iterator]().next().value).toBeUndefined();
+  });
+
+  test("Mapping Value", () => {
+    const newR = r.map((val) => val * 2);
+    expect(newR.isErr()).toBe(true);
+    expect(newR.unwrap).toThrow();
+  });
+
+  test("Mapping Error", () => {
+    const newR = r.mapErr((val) => val + "!");
+    expect(newR.isErr()).toBe(true);
+    expect(newR.value).toBe("Error!");
+  });
+
+  test("Chaining", () => {
+    const newR = r.andThen((val) => ok(val * 2));
+    expect(newR.isErr()).toBe(true);
+    expect(newR.unwrap).toThrow();
   });
 });
 
@@ -93,15 +131,14 @@ describe("Namespace Tests", () => {
     test("Success", () => {
       const r = ok(42);
       Result.match(r, (okVal) => {
-        expect(okVal.unwrap()).toBe(42);
+        expect(okVal).toBe(42);
       });
     });
 
     test("Error", () => {
       const r = err("Error");
       Result.match(r, undefined, (errVal) => {
-        expect(errVal.isErr()).toBe(true);
-        expect(errVal.unwrapOr("Fallback")).toBe("Fallback");
+        expect(errVal).toEqual("Error");
       });
     });
 

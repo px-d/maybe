@@ -37,6 +37,38 @@ export interface BaseResult<T, E>
    * @throws {Error} If the result is an error (`Err`).
    */
   expect(msg: string): T;
+
+  /**
+   * Unwraps the error or throws if the value is Ok.
+   * @param msg the message to throw if the value is Ok
+   */
+  expectErr(msg: string): E;
+
+  /**
+   * Applies a mapping function to the successful result.
+   * @template U The type of the mapped result.
+   * @param {Function} mapper The mapping function.
+   * @returns A new `Result` with the mapped result.
+   */
+  map<U>(mapper: (val: T) => U): Result<U, E>;
+
+  /**
+   * Applies a mapping function to the error.
+   * @template U The type of the mapped error.
+   * @param {Function} mapper The mapping function.
+   * @returns A new `Result` with the mapped error.
+   */
+  mapErr<U>(mapper: (val: E) => U): Result<T, U>;
+
+  /**
+   * Calls `mapper` if the result is successful, otherwise returns the error.
+   * Can be used to chain multiple `Result` operations.
+   * @param mapper 
+   */
+  andThen<T2>(mapper: (val: T) => OkImpl<T2>): Result<T2, E>;
+  andThen<E2>(mapper: (val: T) => ErrImpl<E2>): Result<T, E | E2>;
+  andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
+  andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
 }
 
 class OkImpl<T> implements BaseResult<T, never> {
@@ -84,6 +116,25 @@ class OkImpl<T> implements BaseResult<T, never> {
   expect(_msg: string): T {
     return this.value;
   }
+
+  expectErr(msg: string): never {
+    throw new Error(msg);
+  }
+
+  map<T2>(mapper: (val: T) => T2): OkImpl<T2> {
+    return ok(mapper(this.value));
+  }
+
+  mapErr(_mapper: unknown): OkImpl<T> {
+    return this;
+  }
+
+  andThen<T2>(mapper: (val: T) => OkImpl<T2>): OkImpl<T2>;
+  andThen<E2>(mapper: (val: T) => ErrImpl<E2>): Result<T, E2>;
+  andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2>;
+  andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2> {
+    return mapper(this.value);
+  }
 }
 
 class ErrImpl<E> implements BaseResult<never, E> {
@@ -127,6 +178,22 @@ class ErrImpl<E> implements BaseResult<never, E> {
   expect(msg: string): never {
     throw new Error(`${msg} - Error:\n${this.value}`);
   }
+
+  expectErr(_msg: string): E {
+    return this.value;
+  }
+
+  map(_mapper: unknown): ErrImpl<E> {
+    return this;
+  }
+
+  mapErr<E2>(mapper: (err: E) => E2): ErrImpl<E2> {
+    return err(mapper(this.value));
+  }
+
+  andThen(_op: unknown): ErrImpl<E> {
+    return this;
+  }
 }
 
 export const err = <E>(val: E) => new ErrImpl(val);
@@ -160,13 +227,13 @@ export namespace Result {
 
   export function match<T, E>(
     result: Result<T, E>,
-    okFn?: (result: OkImpl<T>) => any,
-    errFn?: (stack: ErrImpl<E>) => any
+    okFn?: (result: T) => any,
+    errFn?: (error: E) => any
   ) {
     if (result.isOk()) {
-      return okFn?.(result as OkImpl<T>);
+      return okFn?.(result.unwrap());
     } else {
-      return errFn?.(result as ErrImpl<E>);
+      return errFn?.(result.value as E);
     }
   }
 }
