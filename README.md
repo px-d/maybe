@@ -7,6 +7,10 @@ Typescript implementation for Result types very similar to rust.
 - `unwrap()`
 - `unwrapOr()`
 - `expect()`
+- `expectErr()`
+- `map()`
+- `mapErr()`
+- `andThen()`
 
 #### Namespace:
 
@@ -38,7 +42,44 @@ const response: Result<number, string> = err("Error!");
 response.expect("Could not retrieve number"); // = ouputs the provided Error Message
 ```
 
+### `expectErr()`
+
+```ts
+const response: Result<number, string> = err("Error!");
+response.expectErr("No Error!"); // = returns the string "Error!"
+```
+
+### `map()`
+
+```ts
+const result = ok([1, 2, 3]);
+const mapped = result.map((arr) => arr.map((n) => n * 2)); // => [2, 4, 6]
+```
+
+### `mapErr()`
+
+```ts
+const result = err("error");
+const nResult = result.mapErr((err) => {
+  return err + "!";
+}); // => nResult.value === "error!"
+```
+
+### `andThen()`
+
+```ts
+const result: Result<number, string> = ok(2);
+
+const newResult = result.andThen((val) => {
+  return ok(val + 2);
+}); // => new value is 4
+```
+
 ## Namespace Functions
+
+### `Result.isResult`
+
+used to check if an object is of type result (either ErrImpl or OkImpl)
 
 ### `Result.wrap()`
 
@@ -82,6 +123,6 @@ Result.match(
   },
   (errValue) => {
     console.log("We are not ok!", errValue);
-  }
+  },
 );
 ```

@@ -108,7 +108,7 @@ describe("Namespace Tests", () => {
       expect(
         Result.wrap(() => {
           throw new Error("Error");
-        }).isErr()
+        }).isErr(),
       ).toBe(true);
     });
   });

@@ -63,22 +63,22 @@ export interface BaseResult<T, E>
   /**
    * Calls `mapper` if the result is successful, otherwise returns the error.
    * Can be used to chain multiple `Result` operations.
-   * @param mapper 
+   * @param mapper
    */
-  andThen<T2>(mapper: (val: T) => OkImpl<T2>): Result<T2, E>;
-  andThen<E2>(mapper: (val: T) => ErrImpl<E2>): Result<T, E | E2>;
+  andThen<T2>(mapper: (val: T) => Ok<T2>): Result<T2, E>;
+  andThen<E2>(mapper: (val: T) => Err<E2>): Result<T, E | E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E | E2>;
 }
 
-class OkImpl<T> implements BaseResult<T, never> {
+class Ok<T> implements BaseResult<T, never> {
   private readonly ok!: true;
   private readonly err!: false;
   readonly value!: T;
 
   constructor(value: T) {
-    if (!(this instanceof OkImpl)) {
-      return new OkImpl(value);
+    if (!(this instanceof Ok)) {
+      return new Ok(value);
     }
     this.ok = true;
     this.err = false;
@@ -121,30 +121,30 @@ class OkImpl<T> implements BaseResult<T, never> {
     throw new Error(msg);
   }
 
-  map<T2>(mapper: (val: T) => T2): OkImpl<T2> {
+  map<T2>(mapper: (val: T) => T2): Ok<T2> {
     return ok(mapper(this.value));
   }
 
-  mapErr(_mapper: unknown): OkImpl<T> {
+  mapErr(_mapper: unknown): Ok<T> {
     return this;
   }
 
-  andThen<T2>(mapper: (val: T) => OkImpl<T2>): OkImpl<T2>;
-  andThen<E2>(mapper: (val: T) => ErrImpl<E2>): Result<T, E2>;
+  andThen<T2>(mapper: (val: T) => Ok<T2>): Ok<T2>;
+  andThen<E2>(mapper: (val: T) => Err<E2>): Result<T, E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2>;
   andThen<T2, E2>(mapper: (val: T) => Result<T2, E2>): Result<T2, E2> {
     return mapper(this.value);
   }
 }
 
-class ErrImpl<E> implements BaseResult<never, E> {
+class Err<E> implements BaseResult<never, E> {
   private readonly ok!: false;
   private readonly err!: true;
   readonly value!: E;
 
   constructor(value: E) {
-    if (!(this instanceof ErrImpl)) {
-      return new ErrImpl(value);
+    if (!(this instanceof Err)) {
+      return new Err(value);
     }
     this.ok = false;
     this.err = true;
@@ -183,22 +183,22 @@ class ErrImpl<E> implements BaseResult<never, E> {
     return this.value;
   }
 
-  map(_mapper: unknown): ErrImpl<E> {
+  map(_mapper: unknown): Err<E> {
     return this;
   }
 
-  mapErr<E2>(mapper: (err: E) => E2): ErrImpl<E2> {
+  mapErr<E2>(mapper: (err: E) => E2): Err<E2> {
     return err(mapper(this.value));
   }
 
-  andThen(_op: unknown): ErrImpl<E> {
+  andThen(_op: unknown): Err<E> {
     return this;
   }
 }
 
-export const err = <E>(val: E) => new ErrImpl(val);
-export const ok = <T>(val: T) => new OkImpl(val);
-export type Result<T, E> = OkImpl<T> | ErrImpl<E>;
+export const err = <E>(val: E) => new Err(val);
+export const ok = <T>(val: T) => new Ok(val);
+export type Result<T, E> = Ok<T> | Err<E>;
 
 export namespace Result {
   export function wrap<T, E = unknown>(op: () => T): Result<T, E> {
@@ -211,7 +211,7 @@ export namespace Result {
   }
 
   export async function wrapAsync<T, E = unknown>(
-    op: () => Promise<T>
+    op: () => Promise<T>,
   ): Promise<Result<T, E>> {
     try {
       const val = await op();
@@ -222,13 +222,13 @@ export namespace Result {
   }
 
   export function isResult<T, E>(val: any): val is Result<T, E> {
-    return val instanceof OkImpl || val instanceof ErrImpl;
+    return val instanceof Ok || val instanceof Err;
   }
 
   export function match<T, E>(
     result: Result<T, E>,
     okFn?: (result: T) => any,
-    errFn?: (error: E) => any
+    errFn?: (error: E) => any,
   ) {
     if (result.isOk()) {
       return okFn?.(result.unwrap());
