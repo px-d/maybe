@@ -1,6 +1,7 @@
 # Maybe
 
 Typescript implementation for Result types very similar to rust.
+inspired by [ts-result](https://github.com/vultix/ts-results)
 
 ## Currently implemented:
 
